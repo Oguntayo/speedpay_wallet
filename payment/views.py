@@ -1,4 +1,5 @@
 from django.db import transaction
+from rest_framework.pagination import PageNumberPagination
 from rest_framework import status, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -260,7 +261,7 @@ class TransactionHistoryView(generics.ListAPIView):
     permission_classes = (IsAuthenticated,)
     filter_backends = [DjangoFilterBackend]
     filterset_class = LedgerFilter
-
+    pagination_class = PageNumberPagination
     @extend_schema(
         summary="Get Transaction History",
         parameters=[

@@ -120,7 +120,6 @@ class UserListView(generics.ListAPIView):
     pagination_class = PageNumberPagination
 
     def get_queryset(self):
-        # select_related avoids N+1 queries when loading account data
         return User.objects.select_related('account').all().order_by('-date_joined')
 
     @extend_schema(
