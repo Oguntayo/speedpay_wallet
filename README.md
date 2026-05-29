@@ -4,7 +4,7 @@
 
 ---
 
-## 📦 Quick Start (Local Development)
+##  Quick Start (Local Development)
 
 1. **Clone the repository**
    ```bash
@@ -29,25 +29,20 @@
      - `ENVIRONMENT=DEVELOPMENT`  _(or `PRODUCTION` for prod mode)_
      - `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`
      - Database URL (`DATABASE_URL` – defaults to SQLite for dev)
-     - JWT lifetimes, email backend, etc.
+     - JWT lifetimes
 
 4. **Run database migrations**
    ```bash
    python manage.py migrate
    ```
 
-5. **Create a super‑user (optional, for admin UI)**
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-6. **Start the development server**
+5. **Start the development server**
    ```bash
    python manage.py runserver
    ```
    The API will be available at **http://127.0.0.1:8000/**.
 
-7. **Run the test suite** (optional, but highly recommended before any change)
+5. **Run the test suite** (optional, but highly recommended before any change)
    ```bash
    python manage.py test
    ```
@@ -70,44 +65,28 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', settings_module)
 
 ---
 
-## 📚 API Endpoints
-| Method | Path | Description |
-|--------|------|-------------|
-| **POST** | `/api/auth/register/` | Register a new user (strong password validation). |
-| **POST** | `/api/auth/login/` | Obtain JWT tokens, response now includes `user_type`. |
-| **POST** | `/api/auth/token/refresh/` | Refresh JWT token. |
-| **GET**  | `/api/auth/me/` | Retrieve the authenticated user profile. |
-| **POST** | `/api/auth/change-password/` | Change password (old → new). |
-| **POST** | `/api/auth/forgot-password/` | Initiate password‑reset flow (no email enumeration). |
-| **POST** | `/api/auth/reset-password/` | Complete password reset using token. |
-| **GET**  | `/api/payment/balance/` | Get current account balance (auth required). |
-| **POST** | `/api/payment/deposit/` | Deposit funds into own account. |
-| **POST** | `/api/payment/withdraw/` | Withdraw funds from own account. |
-| **POST** | `/api/payment/transfer/` | Transfer funds – accepts `destination_account` **or** `destination_name` (full name). |
-| **POST** | `/api/payment/account-name/` | **New** – Provide `account_number` and receive the holder’s full name. |
-| **GET**  | `/api/payment/transactions/` | List transaction history (filterable). |
-| **GET**  | `/api/user/users/` | **Admin only** – List all users with their account numbers and balances. |
+## API Endpoints
 
-All endpoints are protected by JWT authentication (`IsAuthenticated`). The admin‑only view checks `user_type == 'admin'`.
-
----
-
-## 📄 .gitignore
-A ready‑made ``.gitignore`` is included in the repo (see the file created alongside this README).
+| Method | Path | Description | Payload | Response |
+|--------|------|-------------|---------|----------|
+| **POST** | `/api/auth/register/` | Register a new user (strong password validation). | `{ "email": "user@example.com", "password": "StrongPass123!", "first_name": "John", "last_name": "Doe", "user_type": "customer" }` | `201 Created` – `{ "id": "<uuid>", "email": "user@example.com", "first_name": "John", "last_name": "Doe", "user_type": "customer" }` |
+| **POST** | `/api/auth/login/` | Obtain JWT tokens. | `{ "email": "user@example.com", "password": "StrongPass123!" }` | `200 OK` – `{ "access": "<jwt>", "refresh": "<jwt>", "user": { "id": "<uuid>", "email": "user@example.com", "first_name": "John", "last_name": "Doe", "user_type": "customer", "balance": "0.00" } }` |
+| **POST** | `/api/auth/token/refresh/` | Refresh JWT token. | `{ "refresh": "<refresh_token>" }` | `200 OK` – `{ "access": "<new_jwt>" }` |
+| **GET**  | `/api/auth/me/` | Retrieve the authenticated user profile. | N/A | `200 OK` – `{ "id": "<uuid>", "email": "user@example.com", "first_name": "John", "last_name": "Doe", "user_type": "customer", "balance": "0.00" }` |
+| **POST** | `/api/auth/change-password/` | Change password (old → new). | `{ "old_password": "OldPass123!", "new_password": "NewPass123!" }` | `200 OK` – `{ "detail": "Password changed successfully." }` |
+| **POST** | `/api/auth/forgot-password/` | Initiate password‑reset flow. | `{ "email": "user@example.com" }` | `200 OK` – `{ "detail": "Password reset email sent if the account exists." }` |
+| **POST** | `/api/auth/reset-password/` | Complete password reset using token. | `{ "token": "<reset_token>", "new_password": "NewPass123!" }` | `200 OK` – `{ "detail": "Password has been reset successfully." }` |
+| **GET**  | `/api/payment/balance/` | Get current account balance. | N/A | `200 OK` – `{ "account_number": "123456", "balance": "1500.00", "name": "John Doe" }` |
+| **POST** | `/api/payment/deposit/` | Deposit funds into own account. | `{ "amount": "100.00" }` | `200 OK` – `{ "detail": "Deposit successful.", "balance": "1600.00" }` |
+| **POST** | `/api/payment/withdraw/` | Withdraw funds from own account. | `{ "amount": "100.00" }` | `200 OK` – `{ "detail": "Withdrawal successful.", "balance": "1400.00" }` |
+| **POST** | `/api/payment/transfer/` | Transfer funds – requires `destination_account` and `destination_name`. | `{ "amount": "100.00", "destination_account": "654321", "destination_name": "Jane Smith" }` | `200 OK` – `{ "detail": "Transfer successful.", "balance": "1300.00" }` |
+| **POST** | `/api/payment/account-name/` | Provide `account_number` and receive the holder’s full name. | `{ "account_number": "654321" }` | `200 OK` – `{ "account_number": "654321", "name": "Jane Smith" }` |
+| **GET**  | `/api/payment/transactions/` | List transaction history (paginated, filterable). | N/A (query params) | `200 OK` – `{ "count": 12, "next": "...", "previous": null, "results": [{ "id": "<uuid>", "transaction_type": "deposit", "amount": "100.00", "balance_after": "1500.00", "description": "", "created_at": "2026-05-29T14:00:00Z" }, …] }` |
+| **GET**  | `/api/user/users/` | **Admin only** – List all users with their account numbers and balances (paginated). | N/A | `200 OK` – `{ "count": 5, "next": null, "previous": null, "results": [{ "id": "<uuid>", "email": "admin@example.com", "first_name": "Admin", "last_name": "User", "user_type": "admin", "account_number": null, "balance": null }, { "id": "<uuid>", "email": "cust@example.com", "first_name": "John", "last_name": "Doe", "user_type": "customer", "account_number": "123456", "balance": "1300.00" }, …] }` |
+| **All endpoints require JWT authentication (`IsAuthenticated`). The `UserListView` (`/api/user/users/`) is restricted to users with `user_type == "admin"`. |
 
 ---
 
-## 🛠️ Production Tips
-- Set ``ENVIRONMENT=PRODUCTION`` in ``.env``.
-- Provide real values for ``ALLOWED_HOSTS`` and ``CORS_ALLOWED_ORIGINS``.
-- Switch ``EMAIL_BACKEND`` to an SMTP backend and fill the related ``EMAIL_*`` variables.
-- Use a proper database (PostgreSQL, MySQL, etc.) and set ``DATABASE_URL`` accordingly.
-- Run the app behind a WSGI server such as **Gunicorn** or **Uvicorn**, e.g.:
-  ```bash
-  gunicorn speedpay_project.wsgi:application --bind 0.0.0.0:8000
-  ```
-
+## LIVE URL FOR THE SWAGGER DOCS
+- https://speedpay-wallet.onrender.com/api/schema/swagger-ui/#
 ---
-
-## 🎉 Enjoy!
-Feel free to open issues or pull requests. Happy coding!
