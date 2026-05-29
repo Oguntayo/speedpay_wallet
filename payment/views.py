@@ -13,6 +13,7 @@ from .serializers import (
     DepositSerializer,
     WithdrawalSerializer,
     TransferSerializer,
+    TransferFundsSerializer,
     LedgerSerializer,
     AccountNameSerializer,
 )
@@ -116,6 +117,65 @@ class AccountNameView(generics.GenericAPIView):
         full_name = f"{account.user.first_name} {account.user.last_name}".strip()
         return Response({"account_number": account_number, "name": full_name})
 
+
+class TransferFundsView(APIView):
+    """Transfer funds requiring recipient name, account number and amount."""
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(
+        summary="Transfer Funds with Recipient Name",
+        request=TransferFundsSerializer,
+        responses={
+            200: OpenApiResponse(description="Transfer successful"),
+            400: OpenApiResponse(description="Invalid request or insufficient funds")
+        }
+    )
+    def post(self, request):
+        serializer = TransferFundsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        amount = serializer.validated_data['amount']
+        dest_account_obj = serializer.validated_data['destination_account']
+        dest_name = serializer.validated_data['destination_name']
+        # Validate name matches account holder
+        expected_name = f"{dest_account_obj.user.first_name} {dest_account_obj.user.last_name}".strip()
+        if dest_name.strip() != expected_name:
+            return Response({
+                'error': f'Destination name does not match account holder. Expected: {expected_name}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        source_account = request.user.account
+        if source_account.id == dest_account_obj.id:
+            return Response({"error": "Cannot transfer to your own account."}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            accounts = Account.objects.select_for_update().filter(
+                id__in=[source_account.id, dest_account_obj.id]
+            ).order_by('id')
+            account_dict = {acc.id: acc for acc in accounts}
+            locked_source = account_dict[source_account.id]
+            locked_dest = account_dict[dest_account_obj.id]
+            if locked_source.balance < amount:
+                return Response({"error": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
+            locked_source.balance -= amount
+            locked_source.save()
+            locked_dest.balance += amount
+            locked_dest.save()
+            Ledger.objects.create(
+                account=locked_source,
+                transaction_type='transfer_sent',
+                amount=amount,
+                balance_after=locked_source.balance,
+                description=f"Transferred to {locked_dest.account_number}"
+            )
+            Ledger.objects.create(
+                account=locked_dest,
+                transaction_type='transfer_received',
+                amount=amount,
+                balance_after=locked_dest.balance,
+                description=f"Received from {locked_source.account_number}"
+            )
+        return Response({"message": "Transfer successful", "balance": locked_source.balance})
+
+
 class TransferView(APIView):
     permission_classes = (IsAuthenticated,)
 
@@ -135,8 +195,15 @@ class TransferView(APIView):
 
         source_account = request.user.account
 
-        if source_account.id == dest_account_obj.id:
-            return Response({"error": "Cannot transfer to your own account."}, status=status.HTTP_400_BAD_REQUEST)
+        # Validate optional destination name if provided
+        dest_name = serializer.validated_data.get('destination_name')
+        if dest_name:
+            expected_name = f"{dest_account_obj.user.first_name} {dest_account_obj.user.last_name}".strip()
+            if dest_name.strip() != expected_name:
+                return Response({
+                    'error': f'Destination name does not match account holder. Expected: {expected_name}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
 
         with transaction.atomic():
             # Lock accounts in consistent order to prevent deadlocks

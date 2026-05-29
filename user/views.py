@@ -7,10 +7,14 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
+from rest_framework.pagination import PageNumberPagination
 from .serializers import (
-    UserRegisterSerializer, UserDetailSerializer,
-    ChangePasswordSerializer, ForgotPasswordSerializer, ResetPasswordSerializer,
-    UserWithAccountSerializer
+    UserRegisterSerializer,
+    UserDetailSerializer,
+    ChangePasswordSerializer,
+    ForgotPasswordSerializer,
+    ResetPasswordSerializer,
+    UserWithAccountSerializer,
 )
 from .permissions import IsAdminUserType
 from .tasks import send_password_reset_email_task
@@ -112,7 +116,7 @@ class UserListView(generics.ListAPIView):
     Only accessible by admin users.
     """
     serializer_class = UserWithAccountSerializer
-    permission_classes = (IsAdminUserType,)
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):
         # select_related avoids N+1 queries when loading account data

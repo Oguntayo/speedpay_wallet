@@ -3,9 +3,10 @@ from .views import (
     BalanceView,
     DepositView,
     WithdrawView,
-    TransferView,
+    AccountNameView,
+    TransferFundsView,
     TransactionHistoryView,
-    AccountNameView
+    TransferView,
 )
 
 urlpatterns = [
@@ -13,5 +14,5 @@ urlpatterns = [
     path('deposit/', DepositView.as_view(), name='deposit'),
     path('withdraw/', WithdrawView.as_view(), name='withdraw'),
     path('account-name/', AccountNameView.as_view(), name='account_name'),
-    path('transactions/', TransactionHistoryView.as_view(), name='transactions'),
+    path('transfer-funds/', TransferFundsView.as_view(), name='transfer_funds'),
 ]

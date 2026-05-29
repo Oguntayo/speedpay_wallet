@@ -11,10 +11,15 @@ def validate_positive_amount(value):
 
 
 class AccountBalanceSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Account
-        fields = ('account_number', 'balance')
-        read_only_fields = ('account_number', 'balance')
+        fields = ('account_number', 'balance', 'name')
+        read_only_fields = ('account_number', 'balance', 'name')
+
+    def get_name(self, obj):
+        return f"{obj.user.first_name} {obj.user.last_name}".strip()
 
 
 class DepositSerializer(serializers.Serializer):
@@ -60,6 +65,23 @@ class TransferSerializer(serializers.Serializer):
         min_length=6,
     )
     destination_name = serializers.CharField(required=False, write_only=True, help_text='Full name of recipient (First Last)')
+
+class TransferFundsSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        min_value=Decimal('0.01'),
+        validators=[validate_positive_amount]
+    )
+    destination_account = serializers.CharField(
+        max_length=6,
+        min_length=6,
+    )
+    destination_name = serializers.CharField(
+        max_length=100,
+        required=True,
+        help_text='Full name of recipient (First Last)'
+    )
 
     def validate_destination_account(self, value):
         if not value.isdigit():
