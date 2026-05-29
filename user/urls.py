@@ -13,7 +13,6 @@ from .views import (
 urlpatterns = [
     path('auth/register/', UserRegisterView.as_view(), name='register'),
     path('auth/login/', LoginView.as_view(), name='login'),
-    path('auth/token/', LoginView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/me/', UserDetailView.as_view(), name='user_detail'),
     path('auth/change-password/', ChangePasswordView.as_view(), name='change_password'),

@@ -48,6 +48,7 @@ class WithdrawalSerializer(serializers.Serializer):
 class AccountNameSerializer(serializers.Serializer):
     account_number = serializers.CharField(max_length=6, min_length=6, required=True, help_text='6-digit account number')
 
+class TransferSerializer(serializers.Serializer):
     amount = serializers.DecimalField(
         max_digits=12,
         decimal_places=2,
