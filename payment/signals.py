@@ -16,9 +16,8 @@ def generate_unique_account_number():
 
 @receiver(post_save, sender=User)
 def create_user_account(sender, instance, created, **kwargs):
-    if created:
+    if created and getattr(instance, "user_type", None) == "customer":
         account_number = generate_unique_account_number()
         Account.objects.create(user=instance, account_number=account_number)
-        
         # Send registration email via Celery
         send_registration_email_task.delay(instance.email, instance.first_name, account_number)
