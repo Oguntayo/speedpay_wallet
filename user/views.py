@@ -115,6 +115,7 @@ class UserListView(generics.ListAPIView):
     List all registered users with full profile and account details.
     Only accessible by admin users.
     """
+    permission_classes = (IsAdminUserType,)
     serializer_class = UserWithAccountSerializer
     pagination_class = PageNumberPagination
 
