@@ -49,7 +49,7 @@
 
 ---
 
-## ⚙️ Environment‑Based Settings
+## Environment‑Based Settings
 
 The project uses three settings modules:
 - `speedpay_project/settings.py` – base settings.
